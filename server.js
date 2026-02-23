@@ -18,7 +18,7 @@ app.use(cors())
 
 
 //app.use('/services', serviceRoutes)
-app.use('/invoice', invoiceRoutes)
+app.use('/invoices', invoiceRoutes)
 
 
 

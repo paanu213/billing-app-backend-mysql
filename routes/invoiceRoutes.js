@@ -6,6 +6,7 @@ const router = express.Router()
 router.post('/create-invoice', invoiceController.createInvoice)
 router.get('/invoice-list', invoiceController.getInvoices)
 router.put('/update-payment/:id', invoiceController.addPayments)
+router.get('/invoice/:id', invoiceController.getInvoiceById )
 
 
 

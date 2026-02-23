@@ -21,7 +21,6 @@ const createInvoice = async (req, res)=>{
 const getInvoices = async (req, res)=>{
     
     try{
-        console.log("getInvoices called");
         const invoices = await invoiceService.getAllInvoices();
         res.status(200).json(invoices)
     }
@@ -49,4 +48,16 @@ const addPayments = async (req, res)=>{
 
 }
 
-module.exports = {createInvoice, getInvoices, addPayments}
+const getInvoiceById = async(req, res)=>{
+    try{
+        const id = req.params.id
+        const invoiceDetails = await invoiceService.getInvoiceById(id)
+        res.status(200).json(invoiceDetails)
+    }
+    catch (error){
+        console.log(`error: ${error}`)
+        res.status(500).json({message: 'server error'})
+    }
+}
+
+module.exports = {createInvoice, getInvoices, addPayments, getInvoiceById}

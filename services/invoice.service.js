@@ -1,5 +1,5 @@
-const invoiceModel = require('../models/invoice.model')
 const customerModel = require('../models/customer.model')
+const invoiceModel = require('../models/invoice.model')
 
 const createInvoice = async (data)=>{
         //what if advancePaid or eventDiscount values recieved as null or zero? so validating that.
@@ -67,6 +67,16 @@ const addAditionalPayments = async (invoiceId, data)=>{
     return  {message: 'Payment Added Successfully'}
 }
 
+const getInvoiceById = async (id)=>{
+
+    const invoiceDetails = await invoiceModel.getInvoiceById(id)
+    if(!id) {
+        throw new Error('Invoice id not found') 
+        return
+    }
+    return invoiceDetails
+}
 
 
-module.exports = {createInvoice, getAllInvoices, addAditionalPayments}
+
+module.exports = {createInvoice, getAllInvoices, addAditionalPayments, getInvoiceById}
