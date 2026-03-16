@@ -1,17 +1,15 @@
 const invoiceService = require('../services/invoice.service')
 
 //getting req - (data) from frontend, calling createInvoice() function from service
-// and assining response to "cont response" variable. stores data in our data base this way
 const createInvoice = async (req, res)=>{
     try{
-        const response = await invoiceService.createInvoice(req.body)
+        const response = await invoiceService.createInvoice(req.body, req.user)
         res.status(201).json({
             message: 'invoice created successfully',
             response
         })
     }
     catch(error){
-        console.error(`server error: ${error}`)
         res.status(500).json({message: 'server error'})
     }
 }
@@ -21,7 +19,8 @@ const createInvoice = async (req, res)=>{
 const getInvoices = async (req, res)=>{
     
     try{
-        const invoices = await invoiceService.getAllInvoices();
+        const companyId = req.user.companyId
+        const invoices = await invoiceService.getAllInvoices(companyId);
         res.status(200).json(invoices)
     }
     catch (error){
@@ -51,7 +50,7 @@ const addPayments = async (req, res)=>{
 const getInvoiceById = async(req, res)=>{
     try{
         const id = req.params.id
-        const invoiceDetails = await invoiceService.getInvoiceById(id)
+        const invoiceDetails = await invoiceService.getInvoiceById(id, user)
         res.status(200).json(invoiceDetails)
     }
     catch (error){

@@ -1,25 +1,28 @@
 const pool = require('../config/db')
 
 const createInvoice =  async (data) => {
-    const {customerId,
-           eventType,
-           eventStartDate,
-           eventEndDate,
-           eventAmount,
-           eventDiscount=0,
-           advancePaid=0,
-           billAmount,
-           gstPercentage,
-           gstAmount
-        } = data;
+    const {
+        companyId,
+        customerId,
+        eventType,
+        eventStartDate,
+        eventEndDate,
+        eventAmount,
+        eventDiscount=0,
+        advancePaid=0,
+        billAmount,
+        gstPercentage,
+        gstAmount
+    } = data;
 
 
         const [result] = await pool.execute(
             `INSERT INTO invoices
-            (customer_id, event_type, event_start_date, event_end_date, event_amount,
+            (company_id, customer_id, event_type, event_start_date, event_end_date, event_amount,
             event_discount, advance_paid, bill_amount, gst_percentage, gst_amount)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
+                companyId,
                 customerId,
                 eventType,
                 eventStartDate,
@@ -38,7 +41,7 @@ const createInvoice =  async (data) => {
 
 
 //Get invoice list
-const getAllInvoices = async ()=>{
+const getAllInvoices = async (companyId)=>{
     const [rows] = await pool.execute(
         ` SELECT 
         i.id,
@@ -63,9 +66,12 @@ const getAllInvoices = async ()=>{
         LEFT JOIN additional_payments ap
         ON i.id = ap.invoice_id
 
+        WHERE i.company_id = ? 
+
         GROUP BY i.id
         
-        ORDER BY i.created_at DESC`
+        ORDER BY i.created_at DESC`,
+        [companyId]
     )
     //converting snake_case to camcleCase to send frontend - easy communication and secure.
     return rows.map(row =>{
@@ -110,7 +116,7 @@ const additionalPayments = async (invoiceId, amount, date)=>{
     )
 };
 
-const getInvoiceById = async (id)=>{
+const getInvoiceByIdAndCompany = async (id, companyId)=>{
 
     const [invoiceRows] = await pool.execute(
         `
@@ -133,19 +139,17 @@ const getInvoiceById = async (id)=>{
         FROM invoices i
         INNER JOIN customers c
         ON i.customer_id = c.id
-        WHERE i.id = ?
+        WHERE i.id = ? AND i.company_id = ?
         `,
-        [id]
+        [id, companyId]
     )
-    
+
     if (invoiceRows.length === 0) {
     return null;
-    }
+}
+
 
     const invoice = invoiceRows[0]
-
-
-
 
     //get additional paymnets
     const [paymentRows] = await pool.execute(
@@ -164,8 +168,11 @@ const getInvoiceById = async (id)=>{
     )
 
     //pending amount calculation
-    const pendingAmount = invoice.bill_amount - ( invoice.advance_paid || 0 ) - totalAdditionalPayment
-
+    const billAmount = Number(row.bill_amount || 0);
+    const advancePaid = Number(row.advance_paid || 0);
+    const totalAdditional = Number(row.total_additional || 0);
+    
+    const pendingAmount = billAmount - advancePaid - totalAdditional;
 
     return {
         id: invoice.id,
@@ -199,4 +206,4 @@ const getInvoiceById = async (id)=>{
 }
 
 
-module.exports = {createInvoice, getAllInvoices, additionalPayments, getInvoiceById}
+module.exports = {createInvoice, getAllInvoices, additionalPayments, getInvoiceByIdAndCompany}

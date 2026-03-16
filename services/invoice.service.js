@@ -1,33 +1,51 @@
 const customerModel = require('../models/customer.model')
 const invoiceModel = require('../models/invoice.model')
 
-const createInvoice = async (data)=>{
-        //what if advancePaid or eventDiscount values recieved as null or zero? so validating that.
-        data.eventDiscount = data.eventDiscount ?? 0;
-        data.advancePaid = data.advancePaid ?? 0;
+const createInvoice = async (data, user)=>{
 
-        //after discount amount
-        const afterDiscountAmount = data.eventAmount - data.eventDiscount
+    //user company id check
+    if(!user.companyId){
+        throw new Error ('user does not belongs to any company')
+    }
 
-        //gst calculation
-        const gstAmount = afterDiscountAmount * (data.gstPercentage / 100 )
+    const companyId = user.companyId
 
-        //calculating billingAmount
-      const billAmount = afterDiscountAmount + gstAmount
+    const eventAmount = Number(data.eventAmount)
+
+    //what if advancePaid or eventDiscount values recieved as null or zero? so validating that.
+    const eventDiscount = Number(data.eventDiscount ?? 0);
+    const advancePaid = Number(data.advancePaid ?? 0);
+    const gstPercentage = Number(data.gstPercentage ?? 0)
+
+
+    if(!eventAmount || eventAmount <= 0){
+        throw new Error ('Event amount should be more than 0')
+    }
+
+    if(eventDiscount < 0 || eventAmount > eventAmount){
+        throw new Error ('Discount amount cant be more than bill amount')
+    }
+
+
+    //after discount , gst,  billingAmount calculation
+    const afterDiscountAmount = eventAmount - eventDiscount
+    const gstAmount = afterDiscountAmount * (gstPercentage / 100 )
+    const billAmount = afterDiscountAmount + gstAmount
       
 
-        //check if customer exists - with mobile number
-        let customer = await customerModel.findCustomerByMobile(data.mobileNumber);
+    //check if customer exists - with mobile number
+    let customer = await customerModel.findCustomerByMobile(data.mobileNumber);
 
-        let customerId;
+    let customerId;
 
-        if(customer){
-            customerId = customer.id
-        } else {
-            customerId = await customerModel.createCustomer(data);
-        }
+    if(customer){
+        customerId = customer.id
+    } else {
+        customerId = await customerModel.createCustomer(data);
+    }
 
         const invoiceId = await invoiceModel.createInvoice({
+            companyId,
             customerId,
             customerName: data.customerName,
             eventType: data.eventType,
@@ -51,28 +69,55 @@ const createInvoice = async (data)=>{
         }
 }
 
-const getAllInvoices = async ()=>{
+const getAllInvoices = async (user)=>{
+    if (user.role === 'super_admin') {
     return await invoiceModel.getAllInvoices();
+} else {
+    return await invoiceModel.getAllInvoices(user.companyId);
+}
 }
 
 
-const addAditionalPayments = async (invoiceId, data)=>{
+const addAditionalPayments = async (invoiceId, data, user)=>{
     const {amount, date} = data;
 
     if(!amount || amount <=0){
-        throw new error ('invalid Paymnet amount')
+        throw new Error ('invalid Paymnet amount')
     } 
+
+    let invoice;
+
+    if (user.role === 'super_Admin'){
+        invoice = invoiceModel.getInvoiceById(invoiceId)
+    } else {
+        invoice = await invoiceModel.getInvoiceByIdAndCompany(
+            invoiceId, user.companyId
+        )
+    }
+
+    if (!invoice) {
+        throw new Error('Invoice not found');
+    }
 
     await invoiceModel.additionalPayments(invoiceId, amount, date);
     return  {message: 'Payment Added Successfully'}
 }
 
-const getInvoiceById = async (id)=>{
+const getInvoiceById = async (id, user)=>{
 
-    const invoiceDetails = await invoiceModel.getInvoiceById(id)
-    if(!id) {
+    let invoiceDetails;
+
+    if(user.role === 'super_admin'){
+        invoiceDetails = await invoiceModel.getInvoiceByIdAndCompany(id)
+    }
+    else {
+        invoiceDetails = await invoiceModel.getInvoiceByIdAndCompany(id, user.companyId)
+    }
+
+    
+    if(!invoiceDetails) {
         throw new Error('Invoice id not found') 
-        return
+
     }
     return invoiceDetails
 }
