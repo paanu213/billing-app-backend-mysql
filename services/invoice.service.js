@@ -1,21 +1,22 @@
 const customerModel = require('../models/customer.model')
-const invoiceModel = require('../models/invoice.model')
+const Invoice = require('../models/invoice.model')
+const User = require('../models/user.model')
+const Customer = require('../models/customer.model')
 
 const createInvoice = async (data, user)=>{
 
-    //user company id check
-    if(!user.companyId){
-        throw new Error ('user does not belongs to any company')
+    const id=  user.userId
+
+    const foundUser = await User.findOne({where:{id}})
+
+
+    if(!foundUser){
+        throw new Error ('user not found')
     }
 
-    const companyId = user.companyId
+    const companyId = foundUser.companyId;
 
-    const eventAmount = Number(data.eventAmount)
-
-    //what if advancePaid or eventDiscount values recieved as null or zero? so validating that.
-    const eventDiscount = Number(data.eventDiscount ?? 0);
-    const advancePaid = Number(data.advancePaid ?? 0);
-    const gstPercentage = Number(data.gstPercentage ?? 0)
+    const {eventAmount, eventDiscount, gstPercentage, advancePaid, mobileNumber} = data
 
 
     if(!eventAmount || eventAmount <= 0){
@@ -35,7 +36,7 @@ const createInvoice = async (data, user)=>{
       
 
     //check if customer exists - with mobile number
-    let customer = await customerModel.findCustomerByMobile(data.mobileNumber);
+    let customer = await Customer.findOne({where:{mobileNumber}});
 
     let customerId;
 
@@ -44,8 +45,7 @@ const createInvoice = async (data, user)=>{
     } else {
         customerId = await customerModel.createCustomer(data);
     }
-
-        const invoiceId = await invoiceModel.createInvoice({
+        const invoice = await Invoice.create({
             companyId,
             customerId,
             eventType: data.eventType,
@@ -60,6 +60,8 @@ const createInvoice = async (data, user)=>{
             finalAmount,
             pendingAmount
         });
+
+        const invoiceId = invoice.id
 
         let customerName = data.customerName
 

@@ -1,47 +1,52 @@
 const pool = require('../config/db')
+const {DataTypes} = require('sequelize');
+const sequelize = require('../config/db')
 
-const createInvoice =  async (data) => {
-    const {
-        customerId,
-        eventType,
-        eventStartDate,
-        eventEndDate,
-        eventAmount,
-        eventDiscount=0,
-        advancePaid=0,
-        billAmount,
-        gstPercentage,
-        gstAmount,
-        companyId,
-        finalAmount,
-        pendingAmount
-    } = data;
+const Invoice = sequelize.define(
+    "Invoice",{
+        id: {
+            type: DataTypes.INTEGER,
+            primaryKey: true,
+            autoIncrement: true
+        },
+        customerId: {
+            type: DataTypes.INTEGER,
+            field: "customer_id"
+        },
+        eventType: {
+            type: DataTypes.STRING,
+            field: 'event_type'
+        },
+        eventStartDate: {
+            type: DataTypes.DATE,
+            field: 'event_start_date'
+        },
+        eventEndDate: {
+            type: DataTypes.DATE,
+            field: 'event_end_date'
+        },
 
+        event_amount: DataTypes.FLOAT,
+        event_discount: DataTypes.FLOAT,
+        advance_paid: DataTypes.FLOAT,
 
-        const [result] = await pool.execute(
-            `INSERT INTO invoices
-            (customer_id, event_type, event_start_date, event_end_date, event_amount,
-            event_discount, advance_paid, bill_amount, gst_percentage, gst_amount, company_id, final_amount, pending_amount)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-                customerId,
-                eventType,
-                eventStartDate,
-                eventEndDate,
-                eventAmount,
-                eventDiscount,
-                advancePaid,
-                billAmount,
-                gstPercentage,
-                gstAmount,
-                companyId,
-                finalAmount,
-                pendingAmount
-            ]
-        );
+        bill_amount: DataTypes.FLOAT,
+        gst_percentage: DataTypes.FLOAT,
+        gst_amount: DataTypes.FLOAT,
 
-        return result.insertId;
-}
+        companyId: {
+            type:  DataTypes.INTEGER,
+            field: 'company_id'
+        },
+        final_amount: DataTypes.FLOAT,
+        pending_amount: DataTypes.FLOAT
+    },
+    {
+    tableName: "invoices",
+    timestamps: false,
+    }
+);
+
 
 
 //Get invoice list
@@ -219,4 +224,4 @@ const getInvoiceByIdAndCompany = async (id, companyId)=>{
 }
 
 
-module.exports = {createInvoice, getAllInvoices, additionalPayments, getInvoiceByIdAndCompany}
+module.exports = Invoice

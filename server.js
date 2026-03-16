@@ -2,13 +2,16 @@ const express = require('express')
 const dotEnv = require('dotenv')
 const cors = require('cors')
 
+dotEnv.config()
+const sequelize = require('./config/db')
+
 //importing - require routes
 //const serviceRoutes = require('./routes/serviceRoutes')
 const invoiceRoutes = require('./routes/invoiceRoutes')
 const authRoutes = require('./routes/auth.routes')
 const companiesRoutes = require('./routes/company.routes')
 
-dotEnv.config()
+
 
 const app = express();
 
@@ -24,8 +27,17 @@ app.use('/invoices', invoiceRoutes)
 app.use('/auth', authRoutes )
 app.use('/companies', companiesRoutes )
 
+const startServer = async ()=>{
+    try{
+        await sequelize.authenticate();
+        console.log("db connected successfully")
+        
+        app.listen(PORT, ()=>{
+            console.log(`this app is running on port: ${PORT}`)
+        })
+    } catch (error){
+        console.log('server startup error:', error)
+    }
+}
 
-
-app.listen(PORT, ()=>{
-    console.log(`this app is running on port: ${PORT}`)
-})
+startServer()

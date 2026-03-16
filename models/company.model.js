@@ -1,6 +1,6 @@
 const pool = require('../config/db')
 
-const createCompany = async (companyName)=>{
+const company = async (companyName)=>{
 
     const [result] = await pool.execute(
         `
@@ -42,4 +42,4 @@ const companyDeletebyid = async (id)=>{
 }
 
 
-module.exports = {createCompany, findCompanyById, companiesList, companyDeletebyid}
+module.exports = {company, findCompanyById, companiesList, companyDeletebyid}

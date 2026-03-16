@@ -52,10 +52,8 @@ const getInvoiceById = async(req, res)=>{
         const id = req.params.id
         const invoiceDetails = await invoiceService.getInvoiceById(id, req.user)
         res.status(200).json(invoiceDetails)
-        console.log("invoice Details:", invoiceDetails)
     }
     catch (error){
-        console.log(`error: ${error}`)
         res.status(500).json({message: 'server error'})
     }
 }

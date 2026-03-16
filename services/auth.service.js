@@ -1,7 +1,8 @@
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
-const userModel = require('../models/user.model')
+const User = require('../models/user.model')
 const companyModel = require('../models/company.model')
+
 
 const register = async (data, user)=>{
 
@@ -17,7 +18,7 @@ const register = async (data, user)=>{
             return
         }
 
-    const existingUser = await userModel.findUserByEmail(data.email)
+    const existingUser = await User.findUserByEmail(data.email)
     if(existingUser) {
         throw new Error ('user already exist');
     }
@@ -27,7 +28,7 @@ const register = async (data, user)=>{
 
     const companyId = await companyModel.createCompany(data.companyName)
 
-    const userId = await userModel.createUser({
+    const userId = await userModel.user({
         companyId: companyId,
         name: data.name,
         email: data.email,
@@ -47,7 +48,8 @@ const login = async (data)=>{
 
     const {email, password} = data;
 
-    const user = await userModel.findUserByEmail(email)
+    const  user = await User.findOne({where:{email}})
+    console.log(`user details: ${user}`)
 
     if(!user) { throw new Error('user not found') }
 

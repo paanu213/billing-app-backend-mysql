@@ -1,37 +1,27 @@
-const pool = require('../config/db')
+const {DataTypes, INTEGER} = require('sequelize')
+const sequelize = require('../config/db');
 
-const createCustomer = async (data)=>{
+const Customer = sequelize.define(
+    "Customer",
+    {
+       id:{
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true
+       },
+       customerName: {
+        type: DataTypes.STRING,
+        field: "customer_name" 
+       },
+       mobileNumber: {
+        type: DataTypes.INTEGER,
+        field: "mobile_number",
+        unique: true
+       }
+    }, {
+        tableName: 'customers',
+        timestamps: false
+    }
+)
 
-    const {customerName, mobileNumber} = data;
-
-    const [result] = await pool.execute(
-        `INSERT INTO customers (customer_name, mobile_number)
-        VALUES (?, ?)`,
-        [
-            customerName,
-            mobileNumber
-        ]
-    )
-
-    return result.insertId
-};
-
-
-const findCustomerByMobile = async (mobileNumber)=>{
-    const [rows] = await pool.execute(
-        `SELECT id FROM customers WHERE mobile_number = ?`,
-        [mobileNumber]
-    );
-    return rows[0] || null;
-}
-
-const companiesList = async () => {
-    const [rows] = await pool.execute(
-        `SELECT * FROM companies`
-    );
-
-    return rows
-}
-
-
-module.exports = {createCustomer, findCustomerByMobile, companiesList}
+module.exports = Customer
