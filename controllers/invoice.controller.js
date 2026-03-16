@@ -3,6 +3,7 @@ const invoiceService = require('../services/invoice.service')
 //getting req - (data) from frontend, calling createInvoice() function from service
 const createInvoice = async (req, res)=>{
     try{
+
         const response = await invoiceService.createInvoice(req.body, req.user)
         res.status(201).json({
             message: 'invoice created successfully',
@@ -10,7 +11,7 @@ const createInvoice = async (req, res)=>{
         })
     }
     catch(error){
-        res.status(500).json({message: 'server error'})
+        res.status(500).json({message: error.message})
     }
 }
 
@@ -19,8 +20,7 @@ const createInvoice = async (req, res)=>{
 const getInvoices = async (req, res)=>{
     
     try{
-        const companyId = req.user.companyId
-        const invoices = await invoiceService.getAllInvoices(companyId);
+        const invoices = await invoiceService.getAllInvoices(req.user);
         res.status(200).json(invoices)
     }
     catch (error){
@@ -35,7 +35,7 @@ const addPayments = async (req, res)=>{
         const invoiceId = req.params.id;
 
         if(!invoiceId) return res.status(404).send('invoice not fount')
-        const response = await invoiceService.addAditionalPayments(invoiceId, req.body);
+        const response = await invoiceService.addAditionalPayments(invoiceId, req.body, req.user);
 
         res.status(201).json(response)
 
@@ -50,8 +50,9 @@ const addPayments = async (req, res)=>{
 const getInvoiceById = async(req, res)=>{
     try{
         const id = req.params.id
-        const invoiceDetails = await invoiceService.getInvoiceById(id, user)
+        const invoiceDetails = await invoiceService.getInvoiceById(id, req.user)
         res.status(200).json(invoiceDetails)
+        console.log("invoice Details:", invoiceDetails)
     }
     catch (error){
         console.log(`error: ${error}`)

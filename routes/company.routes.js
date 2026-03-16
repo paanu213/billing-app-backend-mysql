@@ -4,6 +4,7 @@ const companyController = require('../controllers/company.controller');
 const authenticate = require('../middleware/auth.middleware');
 const authorize = require('../middleware/authorize.middleware')
 
-router.post('/', authenticate, authorize(['super_admin']), companyController.createCompanyWithAdmin)
+router.get('/companiesList', companyController.companiesList)
+router.delete('/deleteCompany/:id', companyController.deleteCompanyById)
 
 module.exports = router

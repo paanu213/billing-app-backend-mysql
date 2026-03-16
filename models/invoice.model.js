@@ -2,7 +2,6 @@ const pool = require('../config/db')
 
 const createInvoice =  async (data) => {
     const {
-        companyId,
         customerId,
         eventType,
         eventStartDate,
@@ -12,17 +11,19 @@ const createInvoice =  async (data) => {
         advancePaid=0,
         billAmount,
         gstPercentage,
-        gstAmount
+        gstAmount,
+        companyId,
+        finalAmount,
+        pendingAmount
     } = data;
 
 
         const [result] = await pool.execute(
             `INSERT INTO invoices
-            (company_id, customer_id, event_type, event_start_date, event_end_date, event_amount,
-            event_discount, advance_paid, bill_amount, gst_percentage, gst_amount)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            (customer_id, event_type, event_start_date, event_end_date, event_amount,
+            event_discount, advance_paid, bill_amount, gst_percentage, gst_amount, company_id, final_amount, pending_amount)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
-                companyId,
                 customerId,
                 eventType,
                 eventStartDate,
@@ -32,7 +33,10 @@ const createInvoice =  async (data) => {
                 advancePaid,
                 billAmount,
                 gstPercentage,
-                gstAmount
+                gstAmount,
+                companyId,
+                finalAmount,
+                pendingAmount
             ]
         );
 
@@ -42,6 +46,8 @@ const createInvoice =  async (data) => {
 
 //Get invoice list
 const getAllInvoices = async (companyId)=>{
+
+
     const [rows] = await pool.execute(
         ` SELECT 
         i.id,
@@ -53,6 +59,10 @@ const getAllInvoices = async (companyId)=>{
         i.advance_paid,
         i.bill_amount,
         i.created_at,
+        i.gst_percentage,
+        i.gst_amount,
+        i.final_amount,
+        i.pending_amount,
         
         c.customer_name,
         c.mobile_number,
@@ -73,9 +83,10 @@ const getAllInvoices = async (companyId)=>{
         ORDER BY i.created_at DESC`,
         [companyId]
     )
+
+
     //converting snake_case to camcleCase to send frontend - easy communication and secure.
     return rows.map(row =>{
-        const pending = row.bill_amount - row.advance_paid - row.total_additional;
 
         return {
             id: row.id,
@@ -87,15 +98,16 @@ const getAllInvoices = async (companyId)=>{
             advancePaid: row.advance_paid,
             billAmount: row.bill_amount,
             createdAt: row.created_at,
+            finalAmount: row.final_amount,
 
             customerName: row.customer_name,
             mobileNumber: row.mobile_number,
 
             totalAdditional: row.total_additional,
-            pendingAmount: pending <= 0 ? 0 : pending,
-            finalAmountCleared: pending <= 0 ? "Completed" : "Pending"
+            pendingAmount: row.pending_amount,
+            finalAmountCleared: row.pending_amount  <= 0 ? "Completed" : "Pending"
 
-        }
+        }    
         
     });
 };
@@ -108,11 +120,15 @@ const additionalPayments = async (invoiceId, amount, date)=>{
         `INSERT INTO additional_payments 
         (invoice_id, amount, payment_date)
         values(?, ?, ?)`,
-        [
-        invoiceId,
-        amount,
-        date || new Date()
-        ]
+        [ invoiceId, amount, date || new Date() ]
+    )
+
+    await pool.execute(
+        `
+        UPDATE invoices
+        SET pending_amount = pending_amount - ?
+        where id = ?
+        `, [amount, invoiceId]
     )
 };
 
@@ -132,6 +148,8 @@ const getInvoiceByIdAndCompany = async (id, companyId)=>{
         i.created_at,
         i.gst_percentage,
         i.gst_amount,
+        i.final_amount,
+        i.pending_amount,
 
         c.customer_name,
         c.mobile_number
@@ -167,12 +185,6 @@ const getInvoiceByIdAndCompany = async (id, companyId)=>{
         (sum, p) => sum + Number(p.amount), 0
     )
 
-    //pending amount calculation
-    const billAmount = Number(row.bill_amount || 0);
-    const advancePaid = Number(row.advance_paid || 0);
-    const totalAdditional = Number(row.total_additional || 0);
-    
-    const pendingAmount = billAmount - advancePaid - totalAdditional;
 
     return {
         id: invoice.id,
@@ -186,6 +198,8 @@ const getInvoiceByIdAndCompany = async (id, companyId)=>{
         createdAt: invoice.created_at,
         gstPercentage: invoice.gst_percentage,
         gstAmount: invoice.gst_amount,
+        finalAmount: invoice.final_amount,
+        pendingAmount : invoice.pending_amount,
 
         customerName: invoice.customer_name,
         mobileNumber: invoice.mobile_number,
@@ -199,8 +213,7 @@ const getInvoiceByIdAndCompany = async (id, companyId)=>{
     ),
 
     totalAdditionalPayment,
-    pendingAmount,
-    status: pendingAmount <= 0 ? "Completed" : "Pending"
+    status: invoice.pending_amount <= 0 ? "Completed" : "Pending"
 
     }
 }

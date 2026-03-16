@@ -1,18 +1,26 @@
 const companyService = require('../services/company.service')
 
-const createCompanyWithAdmin = async (req, res)=>{
-
+const companiesList = async (req, res)=>{
     try{
-        const response = await companyService.createCompanyWithAdmin(req.body)
-        res.status(201).json(response)
-        console.log(req.body);
+        const response = await companyService.companiesList()
+        res.status(500).json(response)
+        
     }
     catch (error){
-        console.error(`error: ${error}`)
         res.status(500).json({message: error.message})
+        
     }
+}
 
+const deleteCompanyById = async (req,res)=>{
+    try{
+        const response = await companyService.deleteCompany(req.params.id)
+        res.status(200).json(response)
+    }
+catch (error){
+    res.status(500).json({message: error.message})
+}
 }
 
 
-module.exports = {createCompanyWithAdmin}
+module.exports = { companiesList, deleteCompanyById }

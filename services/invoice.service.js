@@ -22,15 +22,16 @@ const createInvoice = async (data, user)=>{
         throw new Error ('Event amount should be more than 0')
     }
 
-    if(eventDiscount < 0 || eventAmount > eventAmount){
+    if(eventDiscount < 0 || eventDiscount > eventAmount){
         throw new Error ('Discount amount cant be more than bill amount')
     }
 
 
     //after discount , gst,  billingAmount calculation
-    const afterDiscountAmount = eventAmount - eventDiscount
-    const gstAmount = afterDiscountAmount * (gstPercentage / 100 )
-    const billAmount = afterDiscountAmount + gstAmount
+    const billAmount = eventAmount - eventDiscount
+    const gstAmount = billAmount * (gstPercentage / 100 )
+    const finalAmount = billAmount + gstAmount
+    const pendingAmount = finalAmount - advancePaid
       
 
     //check if customer exists - with mobile number
@@ -47,7 +48,6 @@ const createInvoice = async (data, user)=>{
         const invoiceId = await invoiceModel.createInvoice({
             companyId,
             customerId,
-            customerName: data.customerName,
             eventType: data.eventType,
             eventStartDate: data.eventStartDate,
             eventEndDate: data.eventEndDate,
@@ -56,7 +56,9 @@ const createInvoice = async (data, user)=>{
             advancePaid: data.advancePaid,
             billAmount: billAmount,
             gstPercentage: data.gstPercentage,
-            gstAmount
+            gstAmount,
+            finalAmount,
+            pendingAmount
         });
 
         let customerName = data.customerName
@@ -65,7 +67,8 @@ const createInvoice = async (data, user)=>{
             invoiceId,
             customerId,
             customerName,
-            billAmount: billAmount
+            finalAmount,
+            pendingAmount
         }
 }
 
@@ -79,6 +82,9 @@ const getAllInvoices = async (user)=>{
 
 
 const addAditionalPayments = async (invoiceId, data, user)=>{
+
+    if(!invoiceId) return res.status(404).send('invoice not fount')
+
     const {amount, date} = data;
 
     if(!amount || amount <=0){
@@ -112,14 +118,15 @@ const getInvoiceById = async (id, user)=>{
     }
     else {
         invoiceDetails = await invoiceModel.getInvoiceByIdAndCompany(id, user.companyId)
+        console.log("invoice details in service:", invoiceDetails)
     }
 
     
     if(!invoiceDetails) {
         throw new Error('Invoice id not found') 
-
     }
     return invoiceDetails
+    console.log("this is invoice details", invoiceDetails)
 }
 
 

@@ -25,4 +25,13 @@ const findCustomerByMobile = async (mobileNumber)=>{
     return rows[0] || null;
 }
 
-module.exports = {createCustomer, findCustomerByMobile}
+const companiesList = async () => {
+    const [rows] = await pool.execute(
+        `SELECT * FROM companies`
+    );
+
+    return rows
+}
+
+
+module.exports = {createCustomer, findCustomerByMobile, companiesList}

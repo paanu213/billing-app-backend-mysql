@@ -3,7 +3,19 @@ const jwt = require('jsonwebtoken')
 const userModel = require('../models/user.model')
 const companyModel = require('../models/company.model')
 
-const register = async (data)=>{
+const register = async (data, user)=>{
+
+    if(user.role !== "super_admin"){
+        throw new Error ('You are not a Super Admin, dont have permission to Create')
+        return
+    }
+
+    const {companyName, name, email, password} = data;
+
+    if(!companyName || !name, !email, !password){
+            throw new Error ('all fields are required')
+            return
+        }
 
     const existingUser = await userModel.findUserByEmail(data.email)
     if(existingUser) {
@@ -12,12 +24,15 @@ const register = async (data)=>{
 
     const hashedPassword = await bcrypt.hash(data.password, 12)
 
+
+    const companyId = await companyModel.createCompany(data.companyName)
+
     const userId = await userModel.createUser({
-        companyId: data.companyId,
+        companyId: companyId,
         name: data.name,
         email: data.email,
         password: hashedPassword,
-        role: data.role || 'company_staff'
+        role: data.role || 'company_admin'
 
     })
 
@@ -25,6 +40,10 @@ const register = async (data)=>{
 }
 
 const login = async (data)=>{
+
+    if (!data){
+        throw new Error ('Need email and password to login')
+    }
 
     const {email, password} = data;
 
@@ -48,7 +67,12 @@ const login = async (data)=>{
         {expiresIn: '1d'}
     )
 
-    return token;
+    return {token: token, user:{
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+    }};
 
 }
 
