@@ -15,10 +15,16 @@ const companiesList = async (req, res)=>{
 const deleteCompanyById = async (req,res)=>{
     try{
         const response = await companyService.deleteCompany(req.params.id)
-        res.status(200).json(response)
+        res.status(200).json({
+            response: response,
+            message: 'Company deleted successfully'
+        })
     }
 catch (error){
-    res.status(500).json({message: error.message})
+    res.status(500).json({
+        error: error,
+        message: error.message
+    })
 }
 }
 

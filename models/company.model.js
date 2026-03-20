@@ -1,45 +1,40 @@
-const pool = require('../config/db')
-
-const company = async (companyName)=>{
-
-    const [result] = await pool.execute(
-        `
-        INSERT INTO companies
-        (company_name)
-        values(?)`,
-        [companyName]
-    )
-
-    console.log(result)
-
-    return result.insertId
-};
-
-const findCompanyById = async(id)=>{
-
-    const [rows] = await pool.execute(
-        `Select * FROM companies
-        WHERE id = ?`
-        [id]
-    )
-    return rows[0]
-}
-
-const companiesList = async ()=>{
-    const [companiesRows] = await pool.execute(
-        `SELECT * FROM companies`
-    )
-    return companiesRows
-}
-
-const companyDeletebyid = async (id)=>{
-    const [deleteCompany] = await pool.execute(
-        `DELETE FROM companies WHERE id = ?`
-        [id]
-    )
-
-    return 'company Deleted'
-}
+const {DataTypes} = require('sequelize');
+const sequelize = require('../config/db');
 
 
-module.exports = {company, findCompanyById, companiesList, companyDeletebyid}
+const Company = sequelize.define(
+    "Company",
+    {
+        id:{
+            type: DataTypes.INTEGER,
+            autoIncrement: true,
+            allowNull: false,
+            primaryKey: true
+        },
+        companyName: {
+            type: DataTypes.STRING,
+            allowNull: false,
+            field: 'company_name'
+        },
+        createdAt: {
+            type: DataTypes.DATE,
+            field: 'created_at',
+            defaultValue: DataTypes.NOW
+        },
+        updatedAt: {
+            type: DataTypes.DATE,
+            field: 'updated_at',
+            defaultValue: DataTypes.NOW
+        },
+        deletedAt:{
+            type: DataTypes.DATE,
+            field: 'deleted_at'
+        }
+    }, {
+        tableName: "companies",
+        timestamps: true,
+        paranoid: true
+    }
+)
+
+module.exports = Company

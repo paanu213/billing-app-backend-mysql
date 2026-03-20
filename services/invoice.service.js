@@ -2,6 +2,7 @@ const customerModel = require('../models/customer.model')
 const Invoice = require('../models/invoice.model')
 const User = require('../models/user.model')
 const Customer = require('../models/customer.model')
+const Payments = require('../models/payments.model')
 
 const createInvoice = async (data, user)=>{
 
@@ -74,20 +75,30 @@ const createInvoice = async (data, user)=>{
         }
 }
 
+
+//get all invoice list
 const getAllInvoices = async (user)=>{
-    if (user.role === 'super_admin') {
-    return await invoiceModel.getAllInvoices();
-} else {
-    return await invoiceModel.getAllInvoices(user.companyId);
-}
+
+    const {companyId, role} = user
+
+    if (role === 'super_admin') {
+        return await Invoice.findAll();
+    } else {
+        return await Invoice.findAll({where:{companyId}});
+    }
 }
 
 
 const addAditionalPayments = async (invoiceId, data, user)=>{
-
-    if(!invoiceId) return res.status(404).send('invoice not fount')
+    
+    if(!invoiceId) {
+        throw new Error ('invoice not fount')
+    }
 
     const {amount, date} = data;
+    const {userId, role, companyId} = user
+    const paymentDate = date
+    const id = invoiceId
 
     if(!amount || amount <=0){
         throw new Error ('invalid Paymnet amount')
@@ -95,42 +106,69 @@ const addAditionalPayments = async (invoiceId, data, user)=>{
 
     let invoice;
 
-    if (user.role === 'super_Admin'){
-        invoice = invoiceModel.getInvoiceById(invoiceId)
+    if (role === 'super_Admin'){
+        invoice = await Invoice.findOne({where:{id}})
     } else {
-        invoice = await invoiceModel.getInvoiceByIdAndCompany(
-            invoiceId, user.companyId
-        )
+        invoice = await Invoice.findOne({where:{id, companyId}})
     }
 
     if (!invoice) {
         throw new Error('Invoice not found');
     }
 
-    await invoiceModel.additionalPayments(invoiceId, amount, date);
-    return  {message: 'Payment Added Successfully'}
+    const response = await Payments.create( {
+        invoiceId: id,
+        amount: amount,
+        paymentDate: date || new Date()
+    });
+
+    invoice.pendingAmount -= amount
+    await invoice.save();
+
+    return  response
+
 }
 
+
+//get invoice details by id
 const getInvoiceById = async (id, user)=>{
 
+    const {role, companyId} = user
     let invoiceDetails;
 
-    if(user.role === 'super_admin'){
-        invoiceDetails = await invoiceModel.getInvoiceByIdAndCompany(id)
+    if(role === 'super_admin'){
+        invoiceDetails = await Invoice.findOne({where: {id}})
     }
     else {
-        invoiceDetails = await invoiceModel.getInvoiceByIdAndCompany(id, user.companyId)
-        console.log("invoice details in service:", invoiceDetails)
+        invoiceDetails = await Invoice.findOne( {where:{id, companyId}})
     }
-
     
     if(!invoiceDetails) {
         throw new Error('Invoice id not found') 
     }
     return invoiceDetails
-    console.log("this is invoice details", invoiceDetails)
+}
+
+
+const deleteInvoiceById = async (id, user)=>{
+
+    const {companyId, role, userId} = user
+
+    if(!id) {
+        throw new Error ('invoice id required to delete')
+    }
+
+    const invoice = await Invoice.findOne({where:{id, companyId}})
+
+    if(!invoice){
+        throw new Error ('Invoice not found')
+    }
+
+    const response = await Invoice.destroy({where:{id, companyId}})
+
+    return response
 }
 
 
 
-module.exports = {createInvoice, getAllInvoices, addAditionalPayments, getInvoiceById}
+module.exports = {createInvoice, getAllInvoices, addAditionalPayments, getInvoiceById, deleteInvoiceById}

@@ -1,4 +1,3 @@
-const pool = require('../config/db')
 const {DataTypes} = require('sequelize');
 const sequelize = require('../config/db')
 
@@ -11,7 +10,11 @@ const Invoice = sequelize.define(
         },
         customerId: {
             type: DataTypes.INTEGER,
-            field: "customer_id"
+            field: "customer_id",
+            references: {
+                model: 'customers',
+                key: 'id'
+            }
         },
         eventType: {
             type: DataTypes.STRING,
@@ -25,203 +28,71 @@ const Invoice = sequelize.define(
             type: DataTypes.DATE,
             field: 'event_end_date'
         },
-
-        event_amount: DataTypes.FLOAT,
-        event_discount: DataTypes.FLOAT,
-        advance_paid: DataTypes.FLOAT,
-
-        bill_amount: DataTypes.FLOAT,
-        gst_percentage: DataTypes.FLOAT,
-        gst_amount: DataTypes.FLOAT,
-
+        eventAmount: {
+            type: DataTypes.DECIMAL(10, 2),
+            field: 'event_amount'
+        },
+        eventDiscount: {
+            type: DataTypes.DECIMAL(10, 2),
+            field: 'event_discount'
+        },
+        advancePaid: {
+            type: DataTypes.DECIMAL(10, 2),
+            field: 'advance_paid'
+        },
+        billAmount:{
+            type: DataTypes.DECIMAL(10, 2),
+            field: 'bill_amount'
+        },
+        createdAt:{
+            type: DataTypes.DATE,
+            field: 'created_at',
+            defaultValue: DataTypes.NOW
+        },
+        gstPercentage: {
+            type: DataTypes.DECIMAL(5, 2),
+            field: 'gst_percentage'
+        },
+        gstAmount:{
+            type: DataTypes.DECIMAL(10, 2),
+            field: 'gst_amount'
+        },
         companyId: {
             type:  DataTypes.INTEGER,
-            field: 'company_id'
+            field: 'company_id',
+            references: {
+                model: 'companies',
+                key: 'id'
+            }
         },
-        final_amount: DataTypes.FLOAT,
-        pending_amount: DataTypes.FLOAT
+        finalAmount:{
+            type: DataTypes.DECIMAL(10, 2),
+            field: 'final_amount'
+        },
+        pendingAmount: {
+            type: DataTypes.DECIMAL(10, 2),
+            field: 'pending_amount'
+        },
+        createdAt: {
+            type: DataTypes.DATE,
+            field: 'created_at',
+            defaultValue: DataTypes.NOW
+        },
+        updatedAt: {
+            type: DataTypes.DATE,
+            field: 'updated_at',
+            defaultValue: DataTypes.NOW
+        },
+        deletedAt:{
+            type: DataTypes.DATE,
+            field: 'deleted_at'
+        }
     },
     {
     tableName: "invoices",
-    timestamps: false,
+    timestamps: true,
+    paranoid: true
     }
 );
-
-
-
-//Get invoice list
-const getAllInvoices = async (companyId)=>{
-
-
-    const [rows] = await pool.execute(
-        ` SELECT 
-        i.id,
-        i.event_type,
-        i.event_start_date,
-        i.event_end_date,
-        i.event_amount,
-        i.event_discount,
-        i.advance_paid,
-        i.bill_amount,
-        i.created_at,
-        i.gst_percentage,
-        i.gst_amount,
-        i.final_amount,
-        i.pending_amount,
-        
-        c.customer_name,
-        c.mobile_number,
-
-        COALESCE(SUM(ap.amount),0) AS total_additional
-
-        FROM invoices i
-        INNER JOIN customers c
-        ON i.customer_id = c.id
-
-        LEFT JOIN additional_payments ap
-        ON i.id = ap.invoice_id
-
-        WHERE i.company_id = ? 
-
-        GROUP BY i.id
-        
-        ORDER BY i.created_at DESC`,
-        [companyId]
-    )
-
-
-    //converting snake_case to camcleCase to send frontend - easy communication and secure.
-    return rows.map(row =>{
-
-        return {
-            id: row.id,
-            eventType: row.event_type,
-            eventStartDate: row.event_start_date,
-            eventEndDate: row.event_end_date,
-            eventAmount: row.event_amount,
-            eventDiscount: row.event_discount,
-            advancePaid: row.advance_paid,
-            billAmount: row.bill_amount,
-            createdAt: row.created_at,
-            finalAmount: row.final_amount,
-
-            customerName: row.customer_name,
-            mobileNumber: row.mobile_number,
-
-            totalAdditional: row.total_additional,
-            pendingAmount: row.pending_amount,
-            finalAmountCleared: row.pending_amount  <= 0 ? "Completed" : "Pending"
-
-        }    
-        
-    });
-};
-
-
-//recieving additional payment data from frontend and storing in db 
-const additionalPayments = async (invoiceId, amount, date)=>{
-
-    await pool.execute(
-        `INSERT INTO additional_payments 
-        (invoice_id, amount, payment_date)
-        values(?, ?, ?)`,
-        [ invoiceId, amount, date || new Date() ]
-    )
-
-    await pool.execute(
-        `
-        UPDATE invoices
-        SET pending_amount = pending_amount - ?
-        where id = ?
-        `, [amount, invoiceId]
-    )
-};
-
-const getInvoiceByIdAndCompany = async (id, companyId)=>{
-
-    const [invoiceRows] = await pool.execute(
-        `
-        SELECT
-        i.id,
-        i.event_type,
-        i.event_start_date,
-        i.event_end_date,
-        i.event_amount,
-        i.event_discount,
-        i.advance_paid,
-        i.bill_amount,
-        i.created_at,
-        i.gst_percentage,
-        i.gst_amount,
-        i.final_amount,
-        i.pending_amount,
-
-        c.customer_name,
-        c.mobile_number
-
-        FROM invoices i
-        INNER JOIN customers c
-        ON i.customer_id = c.id
-        WHERE i.id = ? AND i.company_id = ?
-        `,
-        [id, companyId]
-    )
-
-    if (invoiceRows.length === 0) {
-    return null;
-}
-
-
-    const invoice = invoiceRows[0]
-
-    //get additional paymnets
-    const [paymentRows] = await pool.execute(
-        `
-        SELECT id, amount, payment_date
-        FROM additional_payments
-        WHERE invoice_id = ?
-        ORDER BY payment_date ASC
-        `,
-        [id]
-    );
-
-    //Calculate additional payment total
-    const totalAdditionalPayment = paymentRows.reduce(
-        (sum, p) => sum + Number(p.amount), 0
-    )
-
-
-    return {
-        id: invoice.id,
-        eventType: invoice.event_type,
-        eventStartDate: invoice.event_start_date,
-        eventEndDate: invoice.event_end_date,
-        eventAmount: invoice.event_amount,
-        eventDiscount: invoice.event_discount,
-        advancePaid: invoice.advance_paid,
-        billAmount: invoice.bill_amount,
-        createdAt: invoice.created_at,
-        gstPercentage: invoice.gst_percentage,
-        gstAmount: invoice.gst_amount,
-        finalAmount: invoice.final_amount,
-        pendingAmount : invoice.pending_amount,
-
-        customerName: invoice.customer_name,
-        mobileNumber: invoice.mobile_number,
-
-        additionalPayments: paymentRows.map( p => ({
-            id: p.id,
-            amount: p.amount,
-            paymentDate: p.payment_date
-
-        } )
-    ),
-
-    totalAdditionalPayment,
-    status: invoice.pending_amount <= 0 ? "Completed" : "Pending"
-
-    }
-}
-
 
 module.exports = Invoice

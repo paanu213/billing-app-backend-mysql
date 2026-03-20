@@ -31,6 +31,8 @@ const startServer = async ()=>{
     try{
         await sequelize.authenticate();
         console.log("db connected successfully")
+
+        await sequelize.sync({alter:false})
         
         app.listen(PORT, ()=>{
             console.log(`this app is running on port: ${PORT}`)

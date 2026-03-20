@@ -33,19 +33,22 @@ const getInvoices = async (req, res)=>{
 const addPayments = async (req, res)=>{
     try{
         const invoiceId = req.params.id;
-
-        if(!invoiceId) return res.status(404).send('invoice not fount')
         const response = await invoiceService.addAditionalPayments(invoiceId, req.body, req.user);
-
-        res.status(201).json(response)
-
+        res.status(201).json({
+            response: response,
+            message: 'Payment record added successfully'
+        })
     }
     catch(error){
         console.error(`message: ${error}`)
-        res.status(500).json({message: 'server error'})
+        res.status(500).json({
+            message: error.message,
+            error: error
+        })
     }
-
 }
+
+
 
 const getInvoiceById = async(req, res)=>{
     try{
@@ -54,8 +57,28 @@ const getInvoiceById = async(req, res)=>{
         res.status(200).json(invoiceDetails)
     }
     catch (error){
-        res.status(500).json({message: 'server error'})
+        res.status(500).json({message: error.message})
     }
 }
 
-module.exports = {createInvoice, getInvoices, addPayments, getInvoiceById}
+//delete invoice by id and company id
+
+async function deleteInvoiceById (req, res){
+    const id = req.params.id
+    try{
+        const response = await invoiceService.deleteInvoiceById(id, req.user)
+
+        res.status(200).json({
+            message: "Deleted Invoice successfully",
+            response: response
+        })
+
+    } catch (error){
+        res.status(500).json({
+            message: error.message,
+            error: error
+        })
+    }
+}
+
+module.exports = {createInvoice, getInvoices, addPayments, getInvoiceById, deleteInvoiceById}

@@ -1,7 +1,7 @@
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
 const User = require('../models/user.model')
-const companyModel = require('../models/company.model')
+const Company = require('../models/company.model')
 
 
 const register = async (data, user)=>{
@@ -18,26 +18,25 @@ const register = async (data, user)=>{
             return
         }
 
-    const existingUser = await User.findUserByEmail(data.email)
+    const existingUser = await User.findOne({where:{email}})
     if(existingUser) {
         throw new Error ('user already exist');
     }
 
     const hashedPassword = await bcrypt.hash(data.password, 12)
 
+    const createCompany = await Company.create({companyName})
 
-    const companyId = await companyModel.createCompany(data.companyName)
-
-    const userId = await userModel.user({
-        companyId: companyId,
-        name: data.name,
-        email: data.email,
+    const registerUser = await User.create({
+        companyId: createCompany.id,
+        name: name,
+        email: email,
         password: hashedPassword,
         role: data.role || 'company_admin'
 
     })
 
-    return {userId}
+    return { name, email, companyName, role: registerUser.role}
 }
 
 const login = async (data)=>{
@@ -48,8 +47,18 @@ const login = async (data)=>{
 
     const {email, password} = data;
 
-    const  user = await User.findOne({where:{email}})
-    console.log(`user details: ${user}`)
+    const  user = await User.findOne({where:{email}, include: [{model:Company, required: true}]})
+
+    // if (user) {
+    //     const companyId = user.companyId;
+
+    //     const isCompanyActive = await Company.findOne({where:{companyId}})
+
+    //     if(!isCompanyActive){
+    //     throw new Error ("your company not active. please activate to login")
+    // }
+    // }
+    
 
     if(!user) { throw new Error('user not found') }
 
@@ -62,12 +71,14 @@ const login = async (data)=>{
     const token = jwt.sign(
         {
             userId: user.id,
-            companyId: user.company_id,
+            companyId: user.companyId,
             role: user.role
         },
         process.env.JWT_SECRET,
         {expiresIn: '1d'}
     )
+
+    console.log(token)
 
     return {token: token, user:{
         id: user.id,
