@@ -1,7 +1,5 @@
-const {DataTypes, INTEGER} = require('sequelize')
-const sequelize = require('../config/db');
-
-const Customer = sequelize.define(
+module.exports = (sequelize, DataTypes) =>{
+    const Customer = sequelize.define(
     "Customer",
     {
        id:{
@@ -16,12 +14,13 @@ const Customer = sequelize.define(
        mobileNumber: {
         type: DataTypes.STRING(15),
         field: "mobile_number",
-        unique: true
+        unique: "company_customer_mobile_unique"
        },
        companyId: {
         type: DataTypes.INTEGER,
         field: 'company_id',
         allowNull: true,
+        unique: "company_customer_mobile_unique",
         references: {
              model: 'companies',
              key: 'id'
@@ -46,6 +45,12 @@ const Customer = sequelize.define(
         timestamps: true,
         paranoid: true
     }
-)
+);
 
-module.exports = Customer
+Customer.associate = (models) => {
+    Customer.belongsTo (models.Company, {foreignKey: 'companyId', targetKey: 'id' }) 
+}
+
+
+return Customer
+}

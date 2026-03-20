@@ -3,7 +3,7 @@ const dotEnv = require('dotenv')
 const cors = require('cors')
 
 dotEnv.config()
-const sequelize = require('./config/db')
+const {sequelize} = require('./models')
 
 //importing - require routes
 //const serviceRoutes = require('./routes/serviceRoutes')

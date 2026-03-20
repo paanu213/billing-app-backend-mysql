@@ -1,23 +1,29 @@
-const customerModel = require('../models/customer.model')
-const Invoice = require('../models/invoice.model')
-const User = require('../models/user.model')
-const Customer = require('../models/customer.model')
-const Payments = require('../models/payments.model')
+const {Customer, Payments, User, Invoice} = require('../models')
 
 const createInvoice = async (data, user)=>{
 
-    const id=  user.userId
+    try{
+        const id=  user.userId
+        const {eventAmount, eventDiscount, gstPercentage, advancePaid, mobileNumber} = data
 
     const foundUser = await User.findOne({where:{id}})
-
 
     if(!foundUser){
         throw new Error ('user not found')
     }
 
-    const companyId = foundUser.companyId;
+    const companyId = user.companyId;
+    
+    //check if customer exists - with mobile number
+    let customer = await Customer.findOne({where:{mobileNumber, companyId}}); //paranoid: false 
 
-    const {eventAmount, eventDiscount, gstPercentage, advancePaid, mobileNumber} = data
+    const newCustomerData = {customerName: data.customerName, mobileNumber: data.mobileNumber, companyId}
+
+    if(!customer){
+        customer = await Customer.create(newCustomerData);
+    }
+    
+    let customerId = customer.id
 
 
     if(!eventAmount || eventAmount <= 0){
@@ -34,18 +40,7 @@ const createInvoice = async (data, user)=>{
     const gstAmount = billAmount * (gstPercentage / 100 )
     const finalAmount = billAmount + gstAmount
     const pendingAmount = finalAmount - advancePaid
-      
 
-    //check if customer exists - with mobile number
-    let customer = await Customer.findOne({where:{mobileNumber}});
-
-    let customerId;
-
-    if(customer){
-        customerId = customer.id
-    } else {
-        customerId = await customerModel.createCustomer(data);
-    }
         const invoice = await Invoice.create({
             companyId,
             customerId,
@@ -74,6 +69,15 @@ const createInvoice = async (data, user)=>{
             pendingAmount
         }
 }
+     catch (error){
+        if (error.name === 'SequelizeValidationError') {
+        console.log(error.errors.map(e => e.message)); // Look at your terminal for this!
+    }
+    throw error;
+    }
+}
+
+    
 
 
 //get all invoice list

@@ -1,4 +1,4 @@
-const Companies = require('../models/company.model')
+const {Company} = require('../models')
 
 
 const companiesList = async ()=>{
@@ -11,13 +11,14 @@ const deleteCompany = async (id)=>{
     if(!id){
         throw new Error ('Id not correct')
     }
-    const company = await Companies.findOne({where:{id}})
+
+    const company = await Company.findOne({where:{id}})
 
     if(!company){
         throw new Error ('Company not found')
     }
 
-    const response = await Companies.destroy({where: {id}})
+    const response = await Company.destroy({where: {id},  individualHooks: true })
 
     return response
 }

@@ -1,7 +1,5 @@
-const {DataTypes} = require('sequelize');
-const sequelize = require('../config/db');
-
-const Payments = sequelize.define(
+module.exports = (sequelize, DataTypes) =>{
+    const Payments = sequelize.define(
     "Payments",
     {
         id:{
@@ -56,4 +54,9 @@ const Payments = sequelize.define(
     }
 )
 
-module.exports = Payments
+Payments.associate = (models) =>{
+    Payments.belongsTo(models.Company, {foreignKey: 'companyId', targetKey: 'id' })
+}
+
+return Payments
+}

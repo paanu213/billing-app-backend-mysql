@@ -1,7 +1,5 @@
-const {DataTypes} = require('sequelize');
-const sequelize = require('../config/db')
-
-const Invoice = sequelize.define(
+module.exports = (sequelize, DataTypes) => {
+    const Invoice = sequelize.define(
     "Invoice",{
         id: {
             type: DataTypes.INTEGER,
@@ -43,11 +41,6 @@ const Invoice = sequelize.define(
         billAmount:{
             type: DataTypes.DECIMAL(10, 2),
             field: 'bill_amount'
-        },
-        createdAt:{
-            type: DataTypes.DATE,
-            field: 'created_at',
-            defaultValue: DataTypes.NOW
         },
         gstPercentage: {
             type: DataTypes.DECIMAL(5, 2),
@@ -95,4 +88,9 @@ const Invoice = sequelize.define(
     }
 );
 
-module.exports = Invoice
+Invoice.associate = (models) =>{
+    Invoice.belongsTo(models.Company, {foreignKey: 'companyId' , targetKey: 'id' })
+}
+
+return Invoice
+}

@@ -1,7 +1,8 @@
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
-const User = require('../models/user.model')
-const Company = require('../models/company.model')
+// const User = require('../models/user.model')
+// const Company = require('../models/company.model')
+const {User, Company} = require('../models')
 
 
 const register = async (data, user)=>{
@@ -48,19 +49,13 @@ const login = async (data)=>{
     const {email, password} = data;
 
     const  user = await User.findOne({where:{email}, include: [{model:Company, required: true}]})
-
-    // if (user) {
-    //     const companyId = user.companyId;
-
-    //     const isCompanyActive = await Company.findOne({where:{companyId}})
-
-    //     if(!isCompanyActive){
-    //     throw new Error ("your company not active. please activate to login")
-    // }
-    // }
     
 
     if(!user) { throw new Error('user not found') }
+
+    if(!user.companyId){
+        throw new Error ('Please activate your account to proceed with activities. call us: 0987654321')
+    }
 
     const isMatch = await bcrypt.compare(password, user.password)
 

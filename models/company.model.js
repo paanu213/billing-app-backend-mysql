@@ -1,8 +1,5 @@
-const {DataTypes} = require('sequelize');
-const sequelize = require('../config/db');
-
-
-const Company = sequelize.define(
+module.exports = (sequelize, DataTypes) =>{
+    const Company = sequelize.define(
     "Company",
     {
         id:{
@@ -35,6 +32,24 @@ const Company = sequelize.define(
         timestamps: true,
         paranoid: true
     }
-)
+);
 
-module.exports = Company
+Company.associate = (models)=>{
+    Company.hasMany(models.User, {foreignKey: 'companyId'});
+    Company.hasMany(models.Invoice, {foreignKey: 'companyId'});
+    Company.hasMany(models.Payments, {foreignKey: 'companyId'});
+    Company.hasMany(models.Customer, {foreignKey: 'companyId'});
+};
+
+Company.addHook('afterDestroy', async (company, options) => {
+    // This looks up the other models automatically
+    const { User, Invoice, Customer } = company.sequelize.models;
+
+    // Soft delete all linked records
+    await User.destroy({ where: { companyId: company.id }, transaction: options.transaction });
+    await Invoice.destroy({ where: { companyId: company.id }, transaction: options.transaction });
+    await Customer.destroy({ where: { companyId: company.id }, transaction: options.transaction });
+});
+
+return Company
+}
