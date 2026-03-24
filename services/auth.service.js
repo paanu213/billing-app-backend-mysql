@@ -48,10 +48,34 @@ const login = async (data)=>{
 
     const {email, password} = data;
 
-    const  user = await User.findOne({where:{email}, include: [{model:Company, required: true}]})
-    
+    const  user = await User.findOne({where:{email}}) //, include: [{model:Company, required: true}]
 
-    if(!user) { throw new Error('user not found') }
+    if (user.role === 'super_admin'){
+        const isMatch = await bcrypt.compare(password, user.password)
+
+    if(!isMatch) {
+        throw new Error ('Please enter correct password')
+    }
+
+    const token = jwt.sign(
+        {
+            userId: user.id,
+            companyId: user.companyId,
+            role: user.role
+        },
+        process.env.JWT_SECRET,
+        {expiresIn: '1d'}
+    )
+
+    return {token: token, user:{
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+    }};
+
+    } else {
+        if(!user) { throw new Error('user not found') }
 
     if(!user.companyId){
         throw new Error ('Please activate your account to proceed with activities. call us: 0987654321')
@@ -73,14 +97,17 @@ const login = async (data)=>{
         {expiresIn: '1d'}
     )
 
-    console.log(token)
-
     return {token: token, user:{
         id: user.id,
         name: user.name,
         email: user.email,
         role: user.role
     }};
+
+    }
+    
+
+    
 
 }
 
