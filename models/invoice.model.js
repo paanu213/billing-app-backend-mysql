@@ -66,6 +66,10 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.DECIMAL(10, 2),
             field: 'pending_amount'
         },
+        status: {
+            type: DataTypes.STRING,
+            defaultValue: 'pending'
+        },
         createdAt: {
             type: DataTypes.DATE,
             field: 'created_at',
@@ -90,6 +94,8 @@ module.exports = (sequelize, DataTypes) => {
 
 Invoice.associate = (models) =>{
     Invoice.belongsTo(models.Company, {foreignKey: 'companyId' , targetKey: 'id' })
+    Invoice.hasMany(models.Payments, {foreignKey: 'invoiceId', as: 'additionalPayments'})
+    Invoice.belongsTo(models.Customer, {foreignKey: 'customerId', targetKey: 'id'})
 }
 
 return Invoice

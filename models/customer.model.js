@@ -48,7 +48,8 @@ module.exports = (sequelize, DataTypes) =>{
 );
 
 Customer.associate = (models) => {
-    Customer.belongsTo (models.Company, {foreignKey: 'companyId', targetKey: 'id' }) 
+    Customer.belongsTo (models.Company, {foreignKey: 'companyId', targetKey: 'id' })
+    Customer.belongsTo(models.Invoice, {foreignKey:'invoiceId', targetKey: 'id'})
 }
 
 

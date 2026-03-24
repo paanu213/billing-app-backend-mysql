@@ -39,7 +39,7 @@ const createInvoice = async (data, user)=>{
     const billAmount = eventAmount - eventDiscount
     const gstAmount = billAmount * (gstPercentage / 100 )
     const finalAmount = billAmount + gstAmount
-    const pendingAmount = finalAmount - advancePaid
+    const pendingAmount = finalAmount - ( advancePaid || 0 )
 
         const invoice = await Invoice.create({
             companyId,
@@ -123,7 +123,8 @@ const addAditionalPayments = async (invoiceId, data, user)=>{
     const response = await Payments.create( {
         invoiceId: id,
         amount: amount,
-        paymentDate: date || new Date()
+        paymentDate: date || new Date(),
+        companyId: invoice.companyId
     });
 
     invoice.pendingAmount -= amount
@@ -141,10 +142,10 @@ const getInvoiceById = async (id, user)=>{
     let invoiceDetails;
 
     if(role === 'super_admin'){
-        invoiceDetails = await Invoice.findOne({where: {id}})
+        invoiceDetails = await Invoice.findOne({where: {id}, include: [{model:Payments, as: 'additionalPayments'}]})
     }
     else {
-        invoiceDetails = await Invoice.findOne( {where:{id, companyId}})
+        invoiceDetails = await Invoice.findOne( {where:{id, companyId}, include: [{model:Payments, as: 'additionalPayments'}, {model: Customer}] })
     }
     
     if(!invoiceDetails) {

@@ -55,7 +55,8 @@ module.exports = (sequelize, DataTypes) =>{
 )
 
 Payments.associate = (models) =>{
-    Payments.belongsTo(models.Company, {foreignKey: 'companyId', targetKey: 'id' })
+    Payments.belongsTo(models.Company, {foreignKey: 'companyId', targetKey: 'id' });
+    Payments.belongsTo(models.Invoice, {foreignKey: 'invoiceId', targetKey: 'id', as:'invoice'})
 }
 
 return Payments
